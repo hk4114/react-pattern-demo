@@ -1,0 +1,1 @@
+利用react提供的context api实现跨组件通信传值。
