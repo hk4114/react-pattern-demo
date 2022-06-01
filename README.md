@@ -391,3 +391,210 @@ JavaScript 提供了一个名为 `Reflect` 的内置对象，它使我们在使�
 
 ## 供应者模式
 利用 react 提供的 context api 实现跨组件通信传值。
+
+## 【创建型】原型模式
+创建新对象时是基于一个对象的拷贝，而不是重新实例化一个类。
+### 目的
+复制已有对象，而又无需使代码依赖它们所属的类。
+
+由一个问题引申过来：
+已经存在一个类，现在希望生成一个完全相同的复制品，该如何操作呢？
+1. 新建一个属于相同类的对象
+2. 遍历原始对象的所有成员变量
+```js
+const obj = {
+  name: 'kane',
+  age: 18
+}
+const cp = {};
+for(let k in obj) {
+  cp[k] = obj[k]
+}
+```
+存在的问题：
+1. 有些对象可能拥有私有成员变量， 它们在对象本身以外是不可见的。
+2. 必须知道所属对象的类才能复制，代码依赖这个类。有时候只知道对象所实现的接口，而不知道所属的具体类。
+
+所以原型模式需要在接口里面实现一个克隆方法。
+
+
+### 类比
+有丝分裂会产生一对完全相同的细胞。 原始细胞就是一个原型， 它在复制体的生成过程中起到了推动作用。
+
+
+### 应用场景
+复制一些对象，同时又希望代码独立于这些对象所属的具体类，可以使用原型模式。
+
+### 实现方式
+
+```ts
+// 最简单的实现方式
+// 这样每次返回的都是新的对象，也可以相当于是对象的拷贝
+function peopleConfigPrototype() {
+  return {
+    name: '',
+    age: 0,
+    des: ''
+  }
+}
+
+// 直接拷贝对象
+const peopleConfigPrototype = {
+  name: '',
+  age: 0,
+  des: ''
+}
+const peopleConfig = Object.create(peopleConfigPrototype);
+```
+
+1. 创建原型接口，并在其中声明克隆 `clone` 方法。如果类已经存在那就直接添加 `clone`。
+2. 原型类必须另行定义一个以该类对象为参数的构造函数`ComponentWithBackReference`。`ComponentWithBackReference` 复制参数对象中的所有成员变量值到新建实例中。如果需要修改子类，则必须调用父类构造函数，让父类复制其私有成员变量值。
+3. 如果语言不支持函数重载，那么可能需要定义一个特殊方法来复制对象数据。在构造函数中进行此类处理比较方便，因为它在调用 `new` 运算符后会马上返回结果对象。
+4. 还可以创建一个中心化原型注册表，用于存储常用原型。
+5. 可以新建一个工厂类来实现注册表，或者在原型基类中添加一个获取原型的静态方法。静态方法可以根据客户端代码设定的条件进行搜索。搜索条件可以是简单的字符串，或者是一组复杂的搜索参数。找到合适的原型后，注册表应对原型进行克隆，并将复制生成的对象返回给客户端。
+6. 最后还要将对子类构造函数的直接调用替换为对原型注册表工厂方法的调用。
+
+
+```ts
+/**
+ * The example class that has cloning ability. We'll see how the values of field
+ * with different types will be cloned.
+ */
+class Prototype {
+  public primitive: any;
+  public component: object;
+  public circularReference: ComponentWithBackReference;
+
+  // 声明克隆方法
+  public clone(): this {
+    const clone = Object.create(this);
+
+    clone.component = Object.create(this.component);
+
+    // Cloning an object that has a nested object with backreference
+    // requires special treatment. After the cloning is completed, the
+    // nested object should point to the cloned object, instead of the
+    // original object. Spread operator can be handy for this case.
+    clone.circularReference = {
+      ...this.circularReference,
+      prototype: { ...this },
+    };
+
+    return clone;
+  }
+}
+
+class ComponentWithBackReference {
+  public prototype;
+
+  constructor(prototype: Prototype) {
+    this.prototype = prototype;
+  }
+}
+
+/**
+ * The client code.
+ */
+function clientCode() {
+  const p1 = new Prototype();
+  p1.primitive = 245;
+  p1.component = new Date();
+  p1.circularReference = new ComponentWithBackReference(p1);
+
+  const p2 = p1.clone();
+  if (p1.primitive === p2.primitive) {
+    console.log('Primitive field values have been carried over to a clone. Yay!');
+  } else {
+    console.log('Primitive field values have not been copied. Booo!');
+  }
+  if (p1.component === p2.component) {
+    console.log('Simple component has not been cloned. Booo!');
+  } else {
+    console.log('Simple component has been cloned. Yay!');
+  }
+
+  if (p1.circularReference === p2.circularReference) {
+    console.log('Component with back reference has not been cloned. Booo!');
+  } else {
+    console.log('Component with back reference has been cloned. Yay!');
+  }
+
+  if (p1.circularReference.prototype === p2.circularReference.prototype) {
+    console.log('Component with back reference is linked to original object. Booo!');
+  } else {
+    console.log('Component with back reference is linked to the clone. Yay!');
+  }
+}
+
+clientCode();
+
+// Primitive field values have been carried over to a clone. Yay!
+// Simple component has been cloned. Yay!
+// Component with back reference has been cloned. Yay!
+// Component with back reference is linked to the clone. Yay!
+```
+
+在 js 中，我们只要了解我们可以通过任何实例的 `__proto__` 属性直接看到原型。任何构造函数实例上的 `__proto__` 值，都是对构造函数原型的直接引用！每当我们尝试直接访问对象上不存在的属性时，js 将沿着原型链查看该属性是否在原型链中可用。
+
+由于所有实例都可以访问原型，因此即使在创建实例之后也很容易向原型添加属性。
+
+```js
+class Dog {
+  constructor(name) {
+    this.name = name;
+  }
+
+  bark() {
+    return `Woof!`;
+  }
+}
+const dog1 = new Dog("Daisy");
+console.log(Dog.prototype);
+// constructor: ƒ Dog(name, breed) bark: ƒ bark()
+
+console.log(dog1.__proto__);
+// constructor: ƒ Dog(name, breed) bark: ƒ bark()
+Dog.prototype.play = () => console.log("Playing now!");
+
+dog1.play();
+
+class SuperDog extends Dog {
+  constructor(name) {
+    super(name);
+  }
+
+  fly() {
+    return "Flying!";
+  }
+}
+```
+SuperDog 可以访问 bark 方法，因为继承了 Dog 类。 SuperDog 原型上的 `__proto__` 值指向 Dog.prototype 对象。
+
+为什么它被称为原型链？
+当我们尝试访问对象上不直接可用的属性时，js 会递归地遍历 `__proto__` 指向的所有对象，直到找到该属性！
+
+`Object.create` 方法允许我们创建一个新对象，我们可以将其原型的值显式传递给该对象。是一种让对象直接从其他对象继承属性的简单方法，通过指定新创建对象的原型。新对象可以通过原型链访问新属性。
+```js
+const dog = {
+  bark() {
+    console.log(`Woof!`);
+  }
+};
+
+const pet1 = Object.create(dog);
+
+pet1.bark(); // Woof!
+console.log("Direct properties on pet1: ", Object.keys(pet1));
+console.log("Properties on pet1's prototype: ", Object.keys(pet1.__proto__));
+```
+pet1 本身没有任何属性，但它却可以访问其原型链上的所有属性。
+原型模式允许我们轻松地让对象访问和继承其他对象的属性。由于原型链允许我们访问不是直接在对象本身上定义的属性，我们可以避免方法和属性的重复，从而减少使用的内存量。
+
+
+### 优缺点
+|                      优点                       |                    缺点                    |
+| :---------------------------------------------: | :----------------------------------------: |
+| 可以克隆对象， 而无需与它们所属的具体类相耦合。 | 克隆包含循环引用的复杂对象可能会非常麻烦。 |
+|  可以克隆预生成原型， 避免反复运行初始化代码。  |                                            |
+|           可以更方便地生成复杂对象。            |                                            |
+| 可以用继承以外的方式来处理复杂对象的不同配置。  |                                            |
