@@ -600,4 +600,24 @@ pet1 本身没有任何属性，但它却可以访问其原型链上的所有属
 | 可以用继承以外的方式来处理复杂对象的不同配置。  |                                            |
 
 ## 容器模式
-使用这种模式，我们可以将视图与应用程序逻辑分开。
+使用这种模式，我们可以将视图与应用程序逻辑分开。  
+
+
+- Observer Pattern
+- Factory Pattern
+- Command Pattern
+- Mediator/Middleware Pattern
+
+
+# A1
+Builder Pattern
+Factory Pattern
+Observer Pattern 观察者模式 & 发布订阅模式
+Strategy Pattern
+职责链模式
+模板方法模式
+适配器模式
+
+# A3
+中介模式 xxxCotroller，xxxMiddleWare
+状态模式 xxxState
