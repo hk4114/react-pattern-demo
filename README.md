@@ -603,21 +603,59 @@ pet1 本身没有任何属性，但它却可以访问其原型链上的所有属
 使用这种模式，我们可以将视图与应用程序逻辑分开。  
 
 
-- Observer Pattern
-- Factory Pattern
-- Command Pattern
-- Mediator/Middleware Pattern
+## 中介模式
+全权负责两个模块之间的通讯，比如MVC，MVVM就是非常典型的中介模式。
+中介模式，桥接模式，代理模式的区别是：
+代理模式一对一，只能代理特定类和对象，是对其的扩展或是约束。
+桥接模式一对多，是对类或对象成员或属性的扩展。
+中介模式多对多，全权承包所有两个概念间的关系。
+```ts
+class Car {
+  name: string = 'benz';
+}
 
+class Buyer {
+  name: string = 'sam';
+  buy(car: Car) {
+    console.log(`${this.name}have bought ${car.name}`)
+  }
+}
 
-# A1
-Builder Pattern
-Factory Pattern
-Observer Pattern 观察者模式 & 发布订阅模式
-Strategy Pattern
-职责链模式
-模板方法模式
-适配器模式
+class FourSShop {
+  constructor() {
+    const benz = new Car()
+    const sam = new Buyer()
+    sam.buy(benz)
+  }
+}
+```
 
-# A3
-中介模式 xxxCotroller，xxxMiddleWare
-状态模式 xxxState
+## 状态模式
+与观察者模式相对，表示的是“记录状态”，只要状态变更，表现即不同，这是设计数据驱动的基础。
+```ts
+class State {
+  tmp: string;
+  set store(state: string) {
+    if (this.tmp !== state) {
+      // do something
+      this.tmp = state
+    }
+  }
+  get store(): string {
+    return this.tmp
+  }
+}
+
+class People {
+  state: State
+  constructor(state: State) {
+    this.state = state
+  }
+}
+
+const state = new State()
+const people = new People(state);
+
+state.store = '1';
+console.log(people.state.store)
+```
